@@ -10,24 +10,24 @@ import numpy as np
 
 # Обработка состояния чекбокса
 def on_checkbox_change(state, param):
-    global show_trace, show_centr, show_bbox, show_predict
+    global show_trace, show_centr, show_bbox, show_direction
     if param == "show_trace":
         show_trace = state
     elif param == "show_centr":
         show_centr = state
     elif param == "show_bbox":
         show_bbox = state
-    elif param == "show_predict":
-        show_predict = state
+    elif param == "show_direction":
+        show_direction = state
 
 # Состояния по умолчанию
 show_trace = False
 show_centr = False
 show_bbox = False
-show_predict = True
+show_direction = True
 
 # Подгружаем модель
-model = YOLO('yolov8m.pt')
+model = YOLO('yolov8l.pt')
 model.fuse()
 
 # Открываем видеопоток с камеры и настраиваем разрешение
@@ -36,29 +36,32 @@ cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
 # Буфер точек положения центра объекта
-trail_queues = defaultdict(lambda: deque(maxlen=10))
+trails = defaultdict(lambda: deque(maxlen=10))
 
 # Создаем окно
-cv2.namedWindow("frame")
+cv2.namedWindow('Detection + Tracking + Direction')
 
 # Переменные для подсчета FPS
 fps_start_time, fps_frame_count, fps = time(), 0, ''
 
 # Добавляем чекбоксы
-cv2.createTrackbar("Bbox", "frame", int(show_bbox), 1, lambda state, 
-                   param="show_bbox": on_checkbox_change(state, param))
-cv2.createTrackbar("Center", "frame", int(show_centr), 1, lambda state, 
-                   param="show_centr": on_checkbox_change(state, param))
-cv2.createTrackbar("Trace", "frame", int(show_trace), 1, lambda state, 
-                   param="show_trace": on_checkbox_change(state, param))
-cv2.createTrackbar("Predict", "frame", int(show_predict), 1, lambda state, 
-                   param="show_predict": on_checkbox_change(state, param))
+cv2.createTrackbar("Bbox", 'Detection + Tracking + Direction', int(show_bbox), 1, 
+                   lambda state, param="show_bbox": on_checkbox_change(state, param))
+cv2.createTrackbar("Center", 'Detection + Tracking + Direction', int(show_centr), 1, 
+                   lambda state, param="show_centr": on_checkbox_change(state, param))
+cv2.createTrackbar("Trace", 'Detection + Tracking + Direction', int(show_trace), 1, 
+                   lambda state, param="show_trace": on_checkbox_change(state, param))
+cv2.createTrackbar("Direction", 'Detection + Tracking + Direction', int(show_direction), 1, 
+                   lambda state, param="show_direction": on_checkbox_change(state, param))
 
 # Основной цикл программы
 while True:
     ret, frame = cap.read()
     if not ret:
         break
+
+    # Добавляем рамку чтобы плашка не исчезала
+    frame = cv2.copyMakeBorder(frame, 20, 5, 5, 5, cv2.BORDER_CONSTANT, value=(240,240,240))
     
     # Детекция и трекинг объекта средствами YOLO и (botsort/bytetrack)
     results = model.track(frame,
@@ -84,13 +87,11 @@ while True:
             cx, cy = int(x0+(x1-x0)/2), int(y0+(y1-y0)/2)
 
             # Добавляем точку в массив
-            trail_queues[id].append((cx, cy))
+            trails[id].append((cx, cy))
 
             # Задаём цвета для красоты
             r.seed(int(cl))
-            color = (r.randint(100, 200),
-                     r.randint(50, 200),
-                     r.randint(25, 200))
+            color = (r.randint(100, 200), r.randint(50, 200), r.randint(25, 200))
             
             # Отображение "Окружающего прямоугольника"
             if show_bbox:
@@ -121,16 +122,16 @@ while True:
 
             # Отображение траектории
             if show_trace:
-                for i in range(1, len(trail_queues[id])):
-                    cv2.line(frame, trail_queues[id][i-1], trail_queues[id][i], color, 2)
+                for i in range(1, len(trails[id])):
+                    cv2.line(frame, trails[id][i-1], trails[id][i], color, 2)
             
             # Отображение направления движения
-            if show_predict and len(list(trail_queues[id]))>=5:
+            if show_direction and len(list(trails[id]))>=5:
                 # Инициализация списка для векторов перемещения
                 movement_vectors = []
 
                 # Получение массива центров объекта
-                trail = list(trail_queues[id])
+                trail = list(trails[id])
 
                 # Вычисление векторов перемещения
                 for i in range(1, len(trail)):
@@ -158,26 +159,12 @@ while True:
         # Сбросить счетчики
         fps_start_time = time()
         fps_frame_count = 0
-
-    # Выводим кадры в секунду (с обводкой)
-    cv2.putText(img=frame,
-                text=fps,
-                org=(10, 20),
-                fontFace=cv2.FONT_ITALIC,
-                fontScale=0.5,
-                color=0,
-                thickness=2)
     
-    cv2.putText(img=frame,
-                text=fps,
-                org=(10, 20),
-                fontFace=cv2.FONT_ITALIC,
-                fontScale=0.5,
-                color=(20, 255, 20),
-                thickness=1)
+    # Выводим кадры в секунду
+    cv2.putText(frame, fps, (5, 15), cv2.FONT_ITALIC, 0.5, (0, 0, 0), 1)
     
     # Показываем что получилось
-    cv2.imshow('frame', frame)
+    cv2.imshow('Detection + Tracking + Direction', frame)
 
     # Выход по нажатию "Esc"
     if cv2.waitKey(1) == 27:
