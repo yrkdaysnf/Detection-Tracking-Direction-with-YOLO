@@ -1,7 +1,9 @@
-import cv2
+# Стандартные модули
 from collections import defaultdict, deque
-from ultralytics import YOLO
 import random as r
+# Сторонние модули
+from ultralytics import YOLO
+import cv2
 import numpy as np
 
 
@@ -135,13 +137,15 @@ while True:
                     movement_vectors.append(movement_vector)
 
                 # Усреднение векторов перемещения
-                average_movement_vector = np.mean(movement_vectors, axis=0)
+                movement = np.mean(movement_vectors, axis=0)
 
-                # Определение координат конца стрелки
-                point = tuple((np.array(trail[-1]) + 10 * average_movement_vector).astype(int))
+                # Фильтруем тряску
+                if abs(movement).astype(float)[0] > 0.3 and abs(movement).astype(float)[1] > 0.3:
+                    # Определение координат конца стрелки
+                    point = tuple((np.array(trail[-1]) + 10 * movement).astype(int))
 
-                # Нарисовать стрелку, указывающую на направление движения
-                cv2.arrowedLine(frame, trail[-1], point, color, 3)
+                    # Нарисовать стрелку, указывающую на направление движения
+                    cv2.arrowedLine(frame, trail[-1], point, color, 3)
 
     # Показываем что получилось
     cv2.imshow('frame', frame)
