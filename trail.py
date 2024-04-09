@@ -1,6 +1,7 @@
 # Стандартные модули
 from collections import defaultdict, deque
 import random as r
+from time import time
 # Сторонние модули
 from ultralytics import YOLO
 import cv2
@@ -40,6 +41,10 @@ trail_queues = defaultdict(lambda: deque(maxlen=10))
 # Создаем окно
 cv2.namedWindow("frame")
 
+# Переменные для подсчета FPS
+fps_start_time = time()
+fps_frame_count = 0
+
 # Добавляем чекбоксы
 cv2.createTrackbar("Bbox", "frame", int(show_bbox), 1, lambda state, 
                    param="show_bbox": on_checkbox_change(state, param))
@@ -49,7 +54,6 @@ cv2.createTrackbar("Trace", "frame", int(show_trace), 1, lambda state,
                    param="show_trace": on_checkbox_change(state, param))
 cv2.createTrackbar("Predict", "frame", int(show_predict), 1, lambda state, 
                    param="show_predict": on_checkbox_change(state, param))
-
 
 # Основной цикл программы
 while True:
@@ -110,7 +114,7 @@ while True:
                             org=(x0, y0-5),
                             fontFace=cv2.FONT_ITALIC,
                             fontScale=0.5,
-                            color=(0, 0, 0),
+                            color=0,
                             thickness=1)
 
             # Отображение центра объекта
@@ -119,7 +123,7 @@ while True:
             # Отображение траектории
             if show_trace:
                 for i in range(1, len(trail_queues[id])):
-                    cv2.line(frame, trail_queues[id][i-1], trail_queues[id][i], color, 1)
+                    cv2.line(frame, trail_queues[id][i-1], trail_queues[id][i], color, 2)
             
             # Отображение направления движения
             if show_predict and len(list(trail_queues[id]))>=5:
@@ -131,22 +135,48 @@ while True:
 
                 # Вычисление векторов перемещения
                 for i in range(1, len(trail)):
-                    prev_center = np.array(trail[i - 1])
-                    current_center = np.array(trail[i])
-                    movement_vector = current_center - prev_center
-                    movement_vectors.append(movement_vector)
+                    movement_vectors.append(np.array(trail[i]) - np.array(trail[i - 1]))
 
                 # Усреднение векторов перемещения
                 movement = np.mean(movement_vectors, axis=0)
 
                 # Фильтруем тряску
-                if abs(movement).astype(float)[0] > 0.3 and abs(movement).astype(float)[1] > 0.3:
+                if abs(movement).astype(float)[0] > 0.3 or abs(movement).astype(float)[1] > 0.3:
                     # Определение координат конца стрелки
                     point = tuple((np.array(trail[-1]) + 10 * movement).astype(int))
 
                     # Нарисовать стрелку, указывающую на направление движения
                     cv2.arrowedLine(frame, trail[-1], point, color, 3)
 
+    #Добавляем кадр
+    fps_frame_count += 1
+
+    # Вывод каждые 1 секунду
+    if time() - fps_start_time >= 1:
+        # Рассчитать FPS
+        fps = f'FPS: {int(fps_frame_count / (time() - fps_start_time))}'
+        
+        # Сбросить счетчики
+        fps_start_time = time()
+        fps_frame_count = 0
+
+    # Выводим кадры в секунду (с обводкой)
+    cv2.putText(img=frame,
+                text=fps,
+                org=(10, 20),
+                fontFace=cv2.FONT_ITALIC,
+                fontScale=0.5,
+                color=0,
+                thickness=2)
+    
+    cv2.putText(img=frame,
+                text=fps,
+                org=(10, 20),
+                fontFace=cv2.FONT_ITALIC,
+                fontScale=0.5,
+                color=(20, 255, 20),
+                thickness=1)
+    
     # Показываем что получилось
     cv2.imshow('frame', frame)
 
