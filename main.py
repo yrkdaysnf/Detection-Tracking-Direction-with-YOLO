@@ -42,8 +42,7 @@ trail_queues = defaultdict(lambda: deque(maxlen=10))
 cv2.namedWindow("frame")
 
 # Переменные для подсчета FPS
-fps_start_time = time()
-fps_frame_count = 0
+fps_start_time, fps_frame_count, fps = time(), 0, ''
 
 # Добавляем чекбоксы
 cv2.createTrackbar("Bbox", "frame", int(show_bbox), 1, lambda state, 
