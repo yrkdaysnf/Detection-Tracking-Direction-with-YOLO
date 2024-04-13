@@ -3,7 +3,7 @@ from collections import defaultdict, deque
 import random as r
 from time import time
 # Сторонние модули
-from ultralytics import YOLO
+from ultralytics import YOLO, checks
 import cv2
 import numpy as np
 
@@ -26,12 +26,13 @@ show_centr = False
 show_bbox = False
 show_direction = True
 
-# Подгружаем модель
-model = YOLO('yolov8l.pt')
+# Проверяем используется ли CUDA и подгружаем модель (выводим ее характеристики)
+checks()
+model = YOLO('yolov8m.pt')
 model.fuse()
 
 # Открываем видеопоток с камеры и настраиваем разрешение
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
