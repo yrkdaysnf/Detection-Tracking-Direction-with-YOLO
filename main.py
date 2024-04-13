@@ -70,7 +70,7 @@ while True:
                           conf=0.6,
                           persist=True,
                           verbose=False,
-                          tracker='botsort.yaml')
+                          tracker='config//botsort.yaml')
 
     # Пакуем полученную информацию от YOLO
     if results[0].boxes.id is not None:
