@@ -1,20 +1,38 @@
 # Detection-Tracking-Direction-with-YOLO
 ### Для запуска:
-1) Установите __virtualenv__.
-`pip3 install virtualenv` 
-2) Создайте виртуальное окружение.
-`python3 -m virtualenv .yolo`
-3) Активируйте виртуальное окружение.
-`source .yolo/bin/activate`
-или
-`.yolo/Scripts/activate`
-4) Установите библиотеку __ultralytics__.
-`pip3 install ultralytics`
+1) Установите __virtualenv__:
 
-5) Запустите скрипт `main.py`
-`python3 main.py`
+```
+pip3 install virtualenv
+``` 
 
-6) Если вы получили сообщение по типу:
+3) Создайте виртуальное окружение: 
+
+```
+python3 -m virtualenv .yolo
+```
+
+4) Активируйте виртуальное окружение:
+<details><summary>Linux</summary>
+<pre><code>source .yolo/bin/activate</code></pre>
+</details>
+<details><summary>Windows</summary>
+<pre><code>.yolo/Scripts/activate</code></pre>
+</details>
+
+4) Установите библиотеку __ultralytics__:
+
+```
+pip3 install ultralytics
+```
+
+6) Запустите скрипт `main.py`:
+
+```
+python3 main.py
+```
+
+8) Если вы получили сообщение по типу:
 ```
 Ultralytics YOLOv8.1.47 🚀 Python-3.8.10 torch-2.2.2+cu121 CUDA:0 (NVIDIA GeForce GTX 1660, 5928MiB)
 Setup complete ✅ (6 CPUs, 31.3 GB RAM, 65.2/109.5 GB disk)
