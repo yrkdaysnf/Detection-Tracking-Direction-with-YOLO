@@ -41,35 +41,23 @@ cv2.namedWindow('Detection + Tracking + Direction')
 
 # Добавляем чекбоксы
 cv2.createTrackbar(
-                    trackbarName="Bbox",
-                    windowName='Detection + Tracking + Direction',
-                    value=int(show_bbox),
-                    count=1,
-                    onChange=lambda state, param="show_bbox": checkbox(state, param)
+                    "Bbox", 'Detection + Tracking + Direction', int(show_bbox), 1,
+                    lambda state, param="show_bbox": checkbox(state, param)
                     )
 
 cv2.createTrackbar(
-                    trackbarName="Center",
-                    windowName='Detection + Tracking + Direction',
-                    value=int(show_centr),
-                    count=1,
-                    onChange=lambda state, param="show_centr": checkbox(state, param)
+                    "Center", 'Detection + Tracking + Direction', int(show_centr), 1,
+                    lambda state, param="show_centr": checkbox(state, param)
                     )
 
 cv2.createTrackbar(
-                    trackbarName="Trace",
-                    windowName='Detection + Tracking + Direction',
-                    value=int(show_trace),
-                    count=1, 
-                    onChange=lambda state, param="show_trace": checkbox(state, param)
+                    "Trace", 'Detection + Tracking + Direction', int(show_trace), 1, 
+                    lambda state, param="show_trace": checkbox(state, param)
                     )
 
 cv2.createTrackbar(
-                    trackbarName="Direction",
-                    windowName='Detection + Tracking + Direction',
-                    value=int(show_direction),
-                    count=1, 
-                    onChange=lambda state, param="show_direction": checkbox(state, param)
+                    "Direction", 'Detection + Tracking + Direction', int(show_direction), 1, 
+                    lambda state, param="show_direction": checkbox(state, param)
                     )
 
 # Буфер точек положения центра объекта
