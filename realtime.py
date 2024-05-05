@@ -11,14 +11,10 @@ import numpy as np
 # Обработка состояния чекбокса
 def checkbox(state, param):
     global show_trace, show_centr, show_bbox, show_direction
-    if param == "show_trace":
-        show_trace = state
-    elif param == "show_centr":
-        show_centr = state
-    elif param == "show_bbox":
-        show_bbox = state
-    elif param == "show_direction":
-        show_direction = state
+    if param == "show_trace": show_trace = state
+    elif param == "show_centr": show_centr = state
+    elif param == "show_bbox": show_bbox = state
+    elif param == "show_direction": show_direction = state
 
 # Состояния по умолчанию
 show_trace = True
@@ -28,11 +24,11 @@ show_direction = True
 
 # Проверяем используется ли CUDA и подгружаем модель (выводим ее характеристики)
 checks()
-model = YOLO('yolov8m.pt')
+model = YOLO('yolov8n.pt')
 model.fuse()
 
 # Открываем видеопоток с камеры и настраиваем разрешение
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
@@ -41,65 +37,75 @@ cv2.namedWindow('Detection + Tracking + Direction')
 
 # Добавляем чекбоксы
 cv2.createTrackbar(
-                    "Bbox", 'Detection + Tracking + Direction', int(show_bbox), 1,
-                    lambda state, param="show_bbox": checkbox(state, param)
-                    )
+                   "Bbox", 'Detection + Tracking + Direction', int(show_bbox), 1,
+                   lambda state, param="show_bbox": checkbox(state, param)
+                  )
 
 cv2.createTrackbar(
-                    "Center", 'Detection + Tracking + Direction', int(show_centr), 1,
-                    lambda state, param="show_centr": checkbox(state, param)
-                    )
+                   "Center", 'Detection + Tracking + Direction', int(show_centr), 1,
+                   lambda state, param="show_centr": checkbox(state, param)
+                  )
 
 cv2.createTrackbar(
-                    "Trace", 'Detection + Tracking + Direction', int(show_trace), 1, 
-                    lambda state, param="show_trace": checkbox(state, param)
-                    )
+                   "Trace", 'Detection + Tracking + Direction', int(show_trace), 1, 
+                   lambda state, param="show_trace": checkbox(state, param)
+                  )
 
 cv2.createTrackbar(
-                    "Direction", 'Detection + Tracking + Direction', int(show_direction), 1, 
-                    lambda state, param="show_direction": checkbox(state, param)
-                    )
+                   "Direction", 'Detection + Tracking + Direction', int(show_direction), 1, 
+                   lambda state, param="show_direction": checkbox(state, param)
+                  )
 
 # Буфер точек положения центра объекта
 trails = defaultdict(lambda: deque(maxlen=50))
 
 # Переменные для подсчета FPS
-fps_start_time, fps_frame_count, fps = time(), 0, 'Please wait...'
+fps_start_time, fps_frame_count, fps = time(), 0, 'FPS: 0'
 
 # Основной цикл программы
 while True:
     ret, frame = cap.read()
-    if not ret:
-        break
+    if not ret:break
 
     # Добавляем рамку чтобы плашка не исчезала
-    frame = cv2.copyMakeBorder(frame, 20, 20, 5, 5, cv2.BORDER_CONSTANT, value=(240,240,240))
+    frame = cv2.copyMakeBorder(
+                               src=frame, 
+                               top=20,
+                               bottom = 0,
+                               left=0,
+                               right=0, 
+                               borderType=cv2.BORDER_CONSTANT, 
+                               value=0
+                              )
     
+    # Обнуляем количество объектов
+    obj = 0
+
     # Детекция и трекинг объекта средствами YOLO и (botsort/bytetrack)
     results = model.track(
-                        frame,
-                        iou=0.6,
-                        conf=0.6,
-                        persist=True,
-                        verbose=False,
-                        tracker='config\\bytetrack.yaml'
-                        )
+                          source=frame,
+                          iou=0.6,
+                          conf=0.6,
+                          persist=True,
+                          verbose=False,
+                          tracker='config\\bytetrack.yaml'
+                         )
 
-    # Вытаскиваем ограничивающуе рамки, центры, классы, уникальные номера и уверенности
+    # Вытаскиваем ограничивающие рамки, классы, уникальные номера и уверенности
     if results[0].boxes.id is not None:
-        boxes = results[0].boxes.xyxy.cpu().numpy().astype(int)
-        centres = results[0].boxes.xywh.cpu().numpy().astype(int)
+        boxes = results[0].boxes.xywh.cpu().numpy().astype(int)
         cls = results[0].boxes.cls.cpu().numpy().astype(int)
         ids = results[0].boxes.id.cpu().numpy().astype(int)
         confs = results[0].boxes.conf.cpu().numpy().astype(float)
+        obj = len(ids)
 
         # Обрабатываем информацию каждого объекта
-        for box, centr, cl, id, conf in zip(boxes, centres, cls, ids, confs):
-            # Координаты для ограничивающей рамки
-            x0,y0,x1,y1 = box
+        for box, cl, id, conf in zip(boxes, cls, ids, confs):
+            # Координата центра, ширина и высота
+            cx,cy,w,h = box
 
-            # Центр объекта
-            cx, cy, _, _ = centr
+            # Крайние точки для ограничивающей рамки
+            x0, y0, x1, y1 = int(cx - w/2), int(cy - h/2), int(cx + w/2), int(cy + h/2)
 
             # Добавляем координату центра объекта в массив
             trails[id].append((cx, cy))
@@ -115,12 +121,12 @@ while True:
 
                 # Рисуем траекторию
                 cv2.polylines(
-                            img=frame,
-                            pts=[points],
-                            isClosed=False,
-                            color=color,
-                            thickness=3
-                            )
+                              img=frame,
+                              pts=[points],
+                              isClosed=False,
+                              color=color,
+                              thickness=2
+                             )
 
             # Отображение направления движения
             if show_direction and len(list(trails[id]))>10:
@@ -149,24 +155,27 @@ while True:
                                     pt2=point,
                                     color=color,
                                     thickness=2
-                                    )
+                                   )
             
             # Отображение ограничивающей рамки
             if show_bbox:
-                # Имя объекта и точность
-                text = f'{results[0].names[cl]} - {int(conf*100)}%'
+                # Уникальный номер, класс объекта и уверенность
+                text = f'Object #{id} ({results[0].names[cl]} - {int(conf*100)}%)'
                 
                 # Рамка
                 cv2.rectangle(
-                            img=frame,
-                            pt1=(x0, y0),
-                            pt2=(x1, y1),
-                            color=color,
-                            thickness=2
-                            )
+                              img=frame,
+                              pt1=(x0, y0),
+                              pt2=(x1, y1),
+                              color=color,
+                              thickness=1
+                             )
                 
                 # Плашка под текст
-                frame[(y0 - 20):y0, x0:x0 + (len(text) * 10)] = color
+                frame[
+                      (y0 - 20):(y0), 
+                      (x0):(x0 + cv2.getTextSize(text, cv2.FONT_ITALIC, 0.5, 1)[0][0])
+                     ] = color
                            
                 # Добавляем текст
                 cv2.putText(
@@ -177,7 +186,7 @@ while True:
                             fontScale=0.5,
                             color=0,
                             thickness=1
-                            )
+                           )
 
             # Отображение центра объекта с координатой
             if show_centr:
@@ -185,7 +194,10 @@ while True:
                 text = f'{cx, cy}'
                 
                 # Плашка под текст
-                frame[(cy - 30):(cy - 10), (cx + 10):(cx + (len(text) * 10))] = color
+                frame[
+                      (cy - 30):(cy - 10), 
+                      (cx + 10):(cx + cv2.getTextSize(text, cv2.FONT_ITALIC, 0.5, 1)[0][0] + 10)
+                     ] = color
 
                 # Добавляем текст
                 cv2.putText(
@@ -196,26 +208,18 @@ while True:
                             fontScale=0.5,
                             color=0,
                             thickness=1
-                            )
+                           )
                 
                 # Рисуем точку (центр)
                 cv2.circle(frame, (cx, cy), 4, color, -1)
+        
+    # Обрезаем изображение (убираем ранее добавленную рамку)
+    frame = frame[20:740, 0:1280]
 
-        # Выводим кол-во объектов
-        cv2.putText(
-                    img=frame,
-                    text=f'Objects in frame: {len(results[0].boxes.id)}',
-                    org=(5, 755),
-                    fontFace=cv2.FONT_ITALIC, 
-                    fontScale=0.5, 
-                    color=0,
-                    thickness= 1
-                    )
-
-    #Добавляем кадр
+    # Добавляем кадр
     fps_frame_count += 1
 
-    # Вывод каждую 1 секунду
+    # Подсчитываем кадры в секунду
     if time() - fps_start_time >= 1:
         # Рассчитать FPS
         fps = f'FPS: {int(fps_frame_count / (time() - fps_start_time))}'
@@ -224,16 +228,22 @@ while True:
         fps_start_time = time()
         fps_frame_count = 0
     
-    # Выводим кадры в секунду
+    # Техническая информация
+    text=f'{fps} - Objects in frame: {obj}'
+        
+    # Добавляем плашку под техническую информацию
+    frame [5:25, 5:cv2.getTextSize(text, cv2.FONT_ITALIC, 0.5, 1)[0][0]+15] = 0
+    
+    # Выводим техническую информацию
     cv2.putText(
                 img=frame,
-                text=fps, 
-                org=(5, 15),
+                text=text,
+                org=(10, 20),
                 fontFace=cv2.FONT_ITALIC,
                 fontScale=0.5,
-                color=(0, 0, 0),
+                color=(255, 255, 255),
                 thickness=1
-                )
+               )
 
     # Показываем что получилось
     cv2.imshow('Detection + Tracking + Direction', frame)
