@@ -41,9 +41,6 @@ trails = defaultdict(lambda: deque(maxlen=50))
 for _ in tqdm(range(frames-1), unit=' frames'):
     _, frame = cap.read()
 
-    # Меняем размер кадра
-    
-
     # Добавляем рамку чтобы плашка не исчезала
     frame = cv2.copyMakeBorder(
                                src=cv2.resize(frame, (1920, 1080)), 
