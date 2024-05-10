@@ -56,7 +56,7 @@ cv2.createTrackbar(
                    lambda state, param="show_direction": checkbox(state, param)
                   )
 
-# Буфер точек положения центра объекта
+# Буфер точек положения центра объекта с фиксирвоанным размером 50 точек
 trails = defaultdict(lambda: deque(maxlen=50))
 
 # Переменные для подсчета FPS
@@ -97,11 +97,13 @@ while True:
         cls = results[0].boxes.cls.cpu().numpy().astype(int)
         ids = results[0].boxes.id.cpu().numpy().astype(int)
         confs = results[0].boxes.conf.cpu().numpy().astype(float)
+
+        # Количество объектов
         obj = len(ids)
 
         # Обрабатываем информацию каждого объекта
         for box, cl, id, conf in zip(boxes, cls, ids, confs):
-            # Координата центра, ширина и высота
+            # Координата центра, ширина и высота ограничивающей рамки
             cx,cy,w,h = box
 
             # Крайние точки для ограничивающей рамки
@@ -112,7 +114,7 @@ while True:
 
             # Задаём цвета для красоты (Единый цвет у класса)
             r.seed(int(cl))
-            color = (r.randint(100, 200), r.randint(50, 200), r.randint(25, 200))
+            color = (r.randint(100, 255), r.randint(50, 255), r.randint(25, 255))
 
             # Отображение траектории
             if show_trace:
@@ -128,7 +130,7 @@ while True:
                               thickness=2
                              )
 
-            # Отображение направления движения
+            # Отображение направления движения (В траектории должно быть больше 10 точек)
             if show_direction and len(list(trails[id]))>10:
                 # Инициализация списка для векторов перемещения
                 movements = []
@@ -136,14 +138,14 @@ while True:
                 # Получение массива центров объекта
                 trail = list(trails[id])
 
-                # Вычисление векторов перемещения
+                # Вычисление векторов перемещения по последним 10 точкам
                 for i in range(len(trail)-10, len(trail)):
                     movements.append(np.array(trail[i]) - np.array(trail[i - 1]))
 
                 # Усреднение векторов перемещения
                 movement = np.mean(movements, axis=0)
 
-                # Фильтруем тряску
+                # Фильтруем тряску (Не показываем направление если движение малозначительное)
                 if abs(movement).astype(float)[0] > 0.3 or abs(movement).astype(float)[1] > 0.3:
                     # Определение координат конца стрелки
                     point = tuple((np.array(trail[-1]) + 10 * movement).astype(int))
@@ -159,10 +161,10 @@ while True:
             
             # Отображение ограничивающей рамки
             if show_bbox:
-                # Уникальный номер, класс объекта и уверенность
+                # Подпись с уникальным номером, классом объекта и уверенностью в прцоентах
                 text = f'Object #{id} ({results[0].names[cl]} - {int(conf*100)}%)'
                 
-                # Рамка
+                # Ограничивающая рамка
                 cv2.rectangle(
                               img=frame,
                               pt1=(x0, y0),
@@ -190,7 +192,7 @@ while True:
 
             # Отображение центра объекта с координатой
             if show_centr:
-                # Координаты x, y центра объекта
+                # Подпись с координатой x, y центра объекта
                 text = f'{cx, cy}'
                 
                 # Плашка под текст
@@ -210,11 +212,8 @@ while True:
                             thickness=1
                            )
                 
-                # Рисуем точку (центр)
-                cv2.circle(frame, (cx, cy), 4, color, -1)
-        
-    # Обрезаем изображение (убираем ранее добавленную рамку)
-    frame = frame[20:740, 0:1280]
+                # Рисуем точку центра объекта
+                cv2.circle(frame, (cx, cy), 4, color, -1)        
 
     # Добавляем кадр
     fps_frame_count += 1
@@ -230,11 +229,14 @@ while True:
     
     # Техническая информация
     text=f'{fps} - Objects in frame: {obj}'
+
+    # Обрезаем изображение (убираем ранее добавленную рамку)
+    frame = frame[20:740, 0:1280]
         
     # Добавляем плашку под техническую информацию
     frame [5:25, 5:cv2.getTextSize(text, cv2.FONT_ITALIC, 0.5, 1)[0][0]+15] = 0
     
-    # Выводим техническую информацию
+    # Выводим техническую информацию (Кадры в секунду и количество объектов)
     cv2.putText(
                 img=frame,
                 text=text,
