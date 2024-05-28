@@ -73,6 +73,7 @@ show_direction = True
 checks() # Проверяем используется ли CUDA
 model = YOLO('models\\yolov8x.pt') # Подгружаем модель YOLOv8m
 model.fuse() # Объединение слоев для оптимизации вывода.
+names = model.model.names # Вытаскиваем имена классов
 
 # Открываем видеопоток и создаем объект для сохранения
 file = 'cam2.mp4'
@@ -109,7 +110,6 @@ for _ in tqdm(range(frames-1), unit=' frames'):
         cls = results[0].boxes.cls.cpu().numpy().astype(int)
         ids = results[0].boxes.id.cpu().numpy().astype(int)
         confs = results[0].boxes.conf.cpu().numpy().astype(float)
-        names = results[0].names
         obj = len(ids)
 
         # Обрабатываем информацию каждого объекта

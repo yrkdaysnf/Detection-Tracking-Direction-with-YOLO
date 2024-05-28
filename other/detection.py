@@ -40,6 +40,7 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
 model = YOLO('models\\yolov8m.pt') # Подгружаем модель YOLOv8m
 model.fuse() # Объединение слоев для оптимизации вывода.
+names = model.model.names # Вытаскиваем имена классов
 
 # Основной цикл программы
 while True:
@@ -58,7 +59,6 @@ while True:
         boxes = results[0].boxes.xywh.cpu().numpy().astype(int)
         cls = results[0].boxes.cls.cpu().numpy().astype(int)
         confs = results[0].boxes.conf.cpu().numpy().astype(float)
-        names = results[0].names
 
         # Последовательно обрабатываем информацию каждого объекта
         for box, cl, conf in zip(boxes, cls, confs):

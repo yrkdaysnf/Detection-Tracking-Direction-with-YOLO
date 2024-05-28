@@ -69,6 +69,7 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
 model = YOLO('models\\yolov8m.pt') # Подгружаем модель YOLOv8m
 model.fuse() # Объединение слоев для оптимизации вывода.
+names = model.model.names # Вытаскиваем имена классов
 
 # Массив точек положения центра объекта с фиксированным размером = 50
 trails = defaultdict(lambda: deque(maxlen=50))
@@ -91,7 +92,6 @@ while True:
         cls = results[0].boxes.cls.cpu().numpy().astype(int)
         confs = results[0].boxes.conf.cpu().numpy().astype(float)
         ids = results[0].boxes.id.cpu().numpy().astype(int)
-        names = results[0].names
 
         # Последовательно обрабатываем информацию каждого объекта
         for box, cl, conf, id in zip(boxes, cls, confs, ids):

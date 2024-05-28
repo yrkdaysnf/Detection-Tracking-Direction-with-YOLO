@@ -1,3 +1,4 @@
+from os import path as p # Создание рабочих путей для UNIX и Windows 
 import random as r # Случайный цвет для класса объектов
 from collections import defaultdict, deque # Фиксированный массив для трекинга
 from time import time # Расчет кадров в секунду
@@ -78,8 +79,11 @@ show_bbox = True
 show_centr = True
 
 checks() # Проверяем используется ли CUDA
-model = YOLO('models\\yolov8m.pt') # Подгружаем модель YOLOv8m
-model.fuse() # Объединение слоев для оптимизации вывода.
+name_model = 'yolov8m' # Выбор модели
+name_tracker = 'botsort' # Выбор трекера
+model = YOLO(p.join('models', f'{name_model}.pt')) # Подгружаем модель YOLOv8m
+model.fuse() # Объединение слоев для оптимизации вывода
+names = model.model.names # Вытаскиваем имена классов
 
 cap = cv2.VideoCapture(0) # Открываем видеопоток с камеры
 #Настраиваем разрешение
@@ -117,7 +121,7 @@ while True:
 
     # Детекция и трекинг объекта средствами YOLO
     results = model.track(source=frame, iou=0.6, conf=0.6, verbose=False,
-                          persist=True, tracker='config\\bytetrack.yaml')
+                          persist=True, tracker=p.join('config', f'{name_tracker}.yaml'))
 
     # Вытаскиваем ограничивающие рамки, классы, уникальные номера и уверенности
     if results[0].boxes.id is not None:
@@ -125,7 +129,6 @@ while True:
         cls = results[0].boxes.cls.cpu().numpy().astype(int)
         ids = results[0].boxes.id.cpu().numpy().astype(int)
         confs = results[0].boxes.conf.cpu().numpy().astype(float)
-        names = results[0].names
 
         obj = len(ids) # Количество объектов
 

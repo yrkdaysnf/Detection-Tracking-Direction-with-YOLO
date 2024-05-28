@@ -85,6 +85,7 @@ name_model = 'yolov8m'
 tracker = 'bytetrack'
 model = YOLO(f'models\\{name_model}.pt') # Подгружаем модель YOLOv8
 model.fuse() # Объединение слоев для оптимизации вывода.
+names = model.model.names # Вытаскиваем имена классов
 
 file = 'cam1(original size).mp4'
 # Открываем видеопоток и создаем объект для сохранения
@@ -116,7 +117,6 @@ for i in tqdm(range(375), unit=' frames'):
         cls = results[0].boxes.cls.cpu().numpy().astype(int)
         ids = results[0].boxes.id.cpu().numpy().astype(int)
         confs = results[0].boxes.conf.cpu().numpy().astype(float)
-        names = results[0].names
         obj = len(ids)
 
         # Обрабатываем информацию каждого объекта
